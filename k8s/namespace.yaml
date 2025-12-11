@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: jr-namespace
+  labels:
+    name: jr-namespace
+    project: milestone2
+    owner: jeron

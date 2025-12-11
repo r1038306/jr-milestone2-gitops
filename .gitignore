@@ -1,0 +1,6 @@
+*.log
+*.exe
+kind-windows-amd64.exe
+kubectl.exe
+node_modules/
+.DS_Store
