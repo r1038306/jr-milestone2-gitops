@@ -1,0 +1,90 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: jr-database
+  namespace: jr-namespace
+  labels:
+    app: milestone2
+    tier: database
+spec:
+  replicas: 1  # Database should not scale
+  selector:
+    matchLabels:
+      app: milestone2
+      tier: database
+  template:
+    metadata:
+      labels:
+        app: milestone2
+        tier: database
+    spec:
+      containers:
+      - name: mongodb
+        image: mongo:7.0
+        ports:
+        - containerPort: 27017
+          name: mongodb
+        envFrom:
+        - secretRef:
+            name: jr-db-secret
+        volumeMounts:
+        - name: database-storage
+          mountPath: /data/db
+        - name: init-script
+          mountPath: /docker-entrypoint-initdb.d
+          readOnly: true
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          exec:
+            command:
+            - mongosh
+            - --eval
+            - "db.adminCommand('ping')"
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          exec:
+            command:
+            - mongosh
+            - --eval
+            - "db.adminCommand('ping')"
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+      volumes:
+      - name: database-storage
+        persistentVolumeClaim:
+          claimName: jr-database-pvc
+      - name: init-script
+        configMap:
+          name: jr-db-init-script
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: jr-database-service
+  namespace: jr-namespace
+  labels:
+    app: milestone2
+    tier: database
+spec:
+  type: ClusterIP
+  ports:
+  - port: 27017
+    targetPort: 27017
+    protocol: TCP
+    name: mongodb
+  selector:
+    app: milestone2
+    tier: database

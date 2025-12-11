@@ -1,0 +1,61 @@
+version: '3.8'
+
+services:
+  # MongoDB Database
+  jr-database:
+    image: mongo:7.0
+    container_name: jr-database
+    environment:
+      MONGO_INITDB_DATABASE: milestone2
+    volumes:
+      - ./database/init-mongo.js:/docker-entrypoint-initdb.d/init-mongo.js:ro
+      - jr-db-data:/data/db
+    ports:
+      - "27017:27017"
+    networks:
+      - jr-network
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # FastAPI Backend
+  jr-api:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    container_name: jr-api
+    environment:
+      MONGO_HOST: jr-database
+      MONGO_PORT: 27017
+      MONGO_DB: milestone2
+    ports:
+      - "8000:8000"
+    networks:
+      - jr-network
+    depends_on:
+      jr-database:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # lighttpd Frontend
+  jr-frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: jr-frontend
+    ports:
+      - "80:80"
+    networks:
+      - jr-network
+    depends_on:
+      - jr-api
+    restart: unless-stopped
+
+networks:
+  jr-network:
+    driver: bridge
+
+volumes:
+  jr-db-data:

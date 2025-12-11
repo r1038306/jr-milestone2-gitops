@@ -1,0 +1,86 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: jr-api
+  namespace: jr-namespace
+  labels:
+    app: milestone2
+    tier: api
+spec:
+  replicas: 3  # Multiple replicas for load balancing
+  selector:
+    matchLabels:
+      app: milestone2
+      tier: api
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+  template:
+    metadata:
+      labels:
+        app: milestone2
+        tier: api
+    spec:
+      containers:
+      - name: fastapi
+        image: jr-api:latest
+        imagePullPolicy: Never  # For kind - uses local image
+        ports:
+        - containerPort: 8000
+          name: http
+        envFrom:
+        - configMapRef:
+            name: jr-app-config
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "200m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 15
+          periodSeconds: 20
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          timeoutSeconds: 3
+          failureThreshold: 3
+        startupProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          periodSeconds: 5
+          failureThreshold: 30  # 30 * 5 = 150 seconds max startup time
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: jr-api-service
+  namespace: jr-namespace
+  labels:
+    app: milestone2
+    tier: api
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8000
+    targetPort: 8000
+    protocol: TCP
+    name: http
+  selector:
+    app: milestone2
+    tier: api
+  sessionAffinity: None  # Load balance across all pods
