@@ -63,6 +63,8 @@ spec:
             port: 8000
           periodSeconds: 5
           failureThreshold: 30  # 30 * 5 = 150 seconds max startup time
+          timeoutSeconds: 10     # Give each probe 10 seconds to respond
+          initialDelaySeconds: 10
 
 ---
 apiVersion: v1
