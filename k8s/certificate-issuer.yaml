@@ -8,7 +8,7 @@ spec:
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
-  name: jr-tls-secret 
+  name: jr-tls-cert 
   namespace: jr-namespace
 spec:
   secretName: jr-tls-secret
